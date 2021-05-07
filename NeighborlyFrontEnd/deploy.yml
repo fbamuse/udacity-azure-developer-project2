@@ -1,0 +1,136 @@
+data:
+  FUNCTIONS_WORKER_RUNTIME: cHl0aG9u
+apiVersion: v1
+kind: Secret
+metadata:
+  name: bamuseaks
+---
+data:
+  host.master: YU41UkY4ZmVUTERtc01CbTZkUkJ3OXhiemhhb3pvVWVsYUx4MFZwTFRUdUprWm9Fcjc0L053PT0=
+  host.function.default: YjgybG1qb1NiTnNCNG5Qd3FtczdhTWlidW05TGcxZDU3eFVETlJwdnV0YUU1WTRSRldwdHh3PT0=
+  host.systemKey.default: YUl6NFBiQXM2cFJvOHppM0tTYi84eXJXaTZwa0EyaWxRNTZXUUZvZUFsbjJUN0tUek9OU3JRPT0=
+  functions.createadvertisement.default: YUVWTVdKdW9UZVdIMEI2TmU3RXN5MWR5UjNnUXoza2p3Q0EyWUF5WWxaWHRxVmJqYkViL3FBPT0=
+  functions.deleteadvertisement.default: a2lwalg0cS9zZmNKZml3c2tBekVzVWNQQ2JYREdFemRKTHVmZ0ZSSTYvUW51bGt3WlN5MTlRPT0=
+  functions.getadvertisement.default: M1VFU1hUQjZncHJLdUNVVEZISGRzNUdQZEJhZGNhQ0RYbkl6L2dtWlI1WVhJY0hiUlp0R09BPT0=
+  functions.getadvertisements.default: akRpYTFkbU5HekRvZ3FqMzRCb3ZEblhBTkVkeUF5akNjN1dKeDB0SThtcExUS2FHaXdGQnh3PT0=
+  functions.getpost.default: R2lvd1B2YTg4bG9lcmN2clZwcEJiNndHL1RHWEwybFBkL2FmNkdSeWtZaDJpMjdxSlRmOGpBPT0=
+  functions.getposts.default: UnU4dUJUOHl2eG1ONGRJdlhHN016N3Y4YTlKMFZTb3hHQ3V0OUppZkdxMk5IT3ZHZWx2VGJ3PT0=
+  functions.updateadvertisement.default: YjNGeXRvMmpndU1TaU0zZG1uamRUOVNKdndFVlNHc0VwODZmTndocWZjQk9hU0NXNXJ6M3NnPT0=
+apiVersion: v1
+kind: Secret
+metadata:
+  name: func-keys-kube-secret-bamuseaks
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: bamuseaks-function-keys-identity-svc-act
+---
+rules:
+- apiGroups:
+  - ''
+  resources:
+  - secrets
+  - configMaps
+  verbs:
+  - get
+  - list
+  - watch
+  - create
+  - update
+  - patch
+  - delete
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: functions-keys-manager-role
+---
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: functions-keys-manager-role
+subjects:
+- kind: ServiceAccount
+  name: bamuseaks-function-keys-identity-svc-act
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: bamuseaks-function-keys-identity-svc-act-functions-keys-manager-rolebinding
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: bamuseaks-http
+spec:
+  selector:
+    app: bamuseaks-http
+  ports:
+  - protocol: TCP
+    port: 80
+    targetPort: 80
+  type: LoadBalancer
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: bamuseaks-http
+  labels:
+    app: bamuseaks-http
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: bamuseaks-http
+  template:
+    metadata:
+      labels:
+        app: bamuseaks-http
+    spec:
+      containers:
+      - name: bamuseaks-http
+        image: bamuseregi.azurecr.io/myfunc:v1
+        ports:
+        - containerPort: 80
+        env:
+        - name: AzureFunctionsJobHost__functions__0
+          value: createAdvertisement
+        - name: AzureFunctionsJobHost__functions__1
+          value: deleteAdvertisement
+        - name: AzureFunctionsJobHost__functions__2
+          value: getAdvertisement
+        - name: AzureFunctionsJobHost__functions__3
+          value: getAdvertisements
+        - name: AzureFunctionsJobHost__functions__4
+          value: getPost
+        - name: AzureFunctionsJobHost__functions__5
+          value: getPosts
+        - name: AzureFunctionsJobHost__functions__6
+          value: updateAdvertisement
+        - name: AzureWebJobsSecretStorageType
+          value: kubernetes
+        - name: AzureWebJobsKubernetesSecretName
+          value: secrets/func-keys-kube-secret-bamuseaks
+        envFrom:
+        - secretRef:
+            name: bamuseaks
+        readinessProbe:
+          failureThreshold: 3
+          periodSeconds: 10
+          successThreshold: 1
+          timeoutSeconds: 240
+          httpGet:
+            path: /
+            port: 80
+            scheme: HTTP
+        startupProbe:
+          failureThreshold: 3
+          periodSeconds: 10
+          successThreshold: 1
+          timeoutSeconds: 240
+          httpGet:
+            path: /
+            port: 80
+            scheme: HTTP
+      serviceAccountName: bamuseaks-function-keys-identity-svc-act
+---
+
